@@ -1,8 +1,13 @@
 package com.nobuhle.smartpantrymanager;
 
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class SmartPantryDatabase extends SQLiteOpenHelper {
 
@@ -75,6 +80,85 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 ")";
 
         db.execSQL(createRecipeIngredientsTable);
+    }
+
+    // INSERT pantry item
+    public long insertPantryItem(PantryItem item, String expiryDate) {
+
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+
+        values.put(PANTRY_NAME, item.getName());
+        values.put(PANTRY_QUANTITY, item.getQuantity());
+        values.put(PANTRY_UNIT, item.getUnit());
+
+        if (expiryDate != null && !expiryDate.trim().isEmpty()) {
+            values.put(PANTRY_EXPIRY_DATE, expiryDate);
+        } else {
+            values.putNull(PANTRY_EXPIRY_DATE);
+        }
+
+        long result = db.insert(TABLE_PANTRY, null, values);
+
+        db.close();
+
+        return result;
+    }
+
+    // SELECT all pantry items
+    public List<PantryItem> getAllPantryItems() {
+
+        List<PantryItem> pantryItems = new ArrayList<>();
+
+        SQLiteDatabase db = this.getReadableDatabase();
+
+        Cursor cursor = db.query(
+                TABLE_PANTRY,
+                null,
+                null,
+                null,
+                null,
+                null,
+                PANTRY_ID + " ASC"
+        );
+
+        if (cursor.moveToFirst()) {
+
+            do {
+                int id = cursor.getInt(
+                        cursor.getColumnIndexOrThrow(PANTRY_ID)
+                );
+
+                String name = cursor.getString(
+                        cursor.getColumnIndexOrThrow(PANTRY_NAME)
+                );
+
+                double quantity = cursor.getDouble(
+                        cursor.getColumnIndexOrThrow(PANTRY_QUANTITY)
+                );
+
+                String unit = cursor.getString(
+                        cursor.getColumnIndexOrThrow(PANTRY_UNIT)
+                );
+
+                PantryItem item = new PantryItem(
+                        name,
+                        quantity,
+                        unit
+                );
+
+                item.setId(id);
+
+                pantryItems.add(item);
+
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        db.close();
+
+        return pantryItems;
     }
 
     @Override
