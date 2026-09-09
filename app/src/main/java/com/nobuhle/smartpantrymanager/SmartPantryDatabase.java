@@ -106,6 +106,51 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
         return result;
     }
 
+    // UPDATE pantry item
+    public int updatePantryItem(PantryItem item, String expiryDate) {
+
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+
+        values.put(PANTRY_NAME, item.getName());
+        values.put(PANTRY_QUANTITY, item.getQuantity());
+        values.put(PANTRY_UNIT, item.getUnit());
+
+        if (expiryDate != null && !expiryDate.trim().isEmpty()) {
+            values.put(PANTRY_EXPIRY_DATE, expiryDate);
+        } else {
+            values.putNull(PANTRY_EXPIRY_DATE);
+        }
+
+        int result = db.update(
+                TABLE_PANTRY,
+                values,
+                PANTRY_ID + "=?",
+                new String[]{String.valueOf(item.getId())}
+        );
+
+        db.close();
+
+        return result;
+    }
+
+    // DELETE pantry item
+    public int deletePantryItem(int id) {
+
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        int result = db.delete(
+                TABLE_PANTRY,
+                PANTRY_ID + "=?",
+                new String[]{String.valueOf(id)}
+        );
+
+        db.close();
+
+        return result;
+    }
+
     // SELECT all pantry items
     public List<PantryItem> getAllPantryItems() {
 
@@ -162,11 +207,25 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
     }
 
     @Override
-    public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+    public void onUpgrade(
+            SQLiteDatabase db,
+            int oldVersion,
+            int newVersion) {
 
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_RECIPE_INGREDIENTS);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_RECIPES);
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_PANTRY);
+        db.execSQL(
+                "DROP TABLE IF EXISTS " +
+                        TABLE_RECIPE_INGREDIENTS
+        );
+
+        db.execSQL(
+                "DROP TABLE IF EXISTS " +
+                        TABLE_RECIPES
+        );
+
+        db.execSQL(
+                "DROP TABLE IF EXISTS " +
+                        TABLE_PANTRY
+        );
 
         onCreate(db);
     }
