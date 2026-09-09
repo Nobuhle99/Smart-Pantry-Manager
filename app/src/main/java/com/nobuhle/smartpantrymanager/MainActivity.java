@@ -3,7 +3,6 @@ package com.nobuhle.smartpantrymanager;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -23,20 +22,23 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        // Connect to the database
         database = new SmartPantryDatabase(this);
 
-        // Connect RecyclerView
-        recyclerViewPantry = findViewById(R.id.recyclerViewPantry);
+        // Add the starter recipes if the recipe table is empty
+        database.seedRecipesIfEmpty();
+
+        recyclerViewPantry =
+                findViewById(R.id.recyclerViewPantry);
 
         recyclerViewPantry.setLayoutManager(
                 new LinearLayoutManager(this)
         );
 
-        // Add Ingredient button
-        Button btnAddIngredient = findViewById(R.id.btnAddIngredient);
+        Button btnAddIngredient =
+                findViewById(R.id.btnAddIngredient);
 
         btnAddIngredient.setOnClickListener(v -> {
+
             Intent intent = new Intent(
                     MainActivity.this,
                     AddEditIngredientActivity.class
@@ -45,7 +47,6 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        // Load pantry items
         loadPantryItems();
     }
 
@@ -53,7 +54,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        // Refresh the list when returning to this screen
         if (database != null) {
             loadPantryItems();
         }
@@ -64,15 +64,11 @@ public class MainActivity extends AppCompatActivity {
         List<PantryItem> pantryItems =
                 database.getAllPantryItems();
 
-        // Temporary test
-        Toast.makeText(
-                this,
-                "Pantry items found: " + pantryItems.size(),
-                Toast.LENGTH_LONG
-        ).show();
+        pantryAdapter =
+                new PantryAdapter(pantryItems);
 
-        pantryAdapter = new PantryAdapter(pantryItems);
-
-        recyclerViewPantry.setAdapter(pantryAdapter);
+        recyclerViewPantry.setAdapter(
+                pantryAdapter
+        );
     }
 }
