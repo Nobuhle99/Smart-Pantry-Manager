@@ -1,5 +1,6 @@
 package com.nobuhle.smartpantrymanager;
 
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -45,6 +46,32 @@ public class RecipeAdapter
         holder.tvRecipeInstructions.setText(
                 recipe.getInstructions()
         );
+
+        // Open Recipe Detail screen when a recipe is tapped
+        holder.itemView.setOnClickListener(v -> {
+
+            Intent intent = new Intent(
+                    v.getContext(),
+                    RecipeDetailActivity.class
+            );
+
+            intent.putExtra(
+                    "recipe_id",
+                    recipe.getId()
+            );
+
+            intent.putExtra(
+                    "recipe_name",
+                    recipe.getName()
+            );
+
+            intent.putExtra(
+                    "recipe_instructions",
+                    recipe.getInstructions()
+            );
+
+            v.getContext().startActivity(intent);
+        });
     }
 
     @Override

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Back button -->
+        <Button
+            android:id="@+id/btnBack"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="← Back"
+            android:layout_marginTop="24dp"
+            android:textSize="16sp"
+            android:minHeight="48dp"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp" />
+
+        <!-- Recipe name -->
+        <TextView
+            android:id="@+id/tvDetailRecipeName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Chicken Pasta"
+            android:textSize="28sp"
+            android:textStyle="bold" />
+
+        <!-- Ingredients heading -->
+        <TextView
+            android:id="@+id/tvIngredientsHeading"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Ingredients"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <!-- Ingredients list -->
+        <LinearLayout
+            android:id="@+id/ingredientsContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="vertical" />
+
+        <!-- Instructions heading -->
+        <TextView
+            android:id="@+id/tvInstructionsHeading"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Instructions"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <!-- Instructions -->
+        <TextView
+            android:id="@+id/tvDetailInstructions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Cooking instructions"
+            android:textSize="16sp"
+            android:lineSpacingExtra="4dp" />
+
+    </LinearLayout>
+
+</ScrollView>
