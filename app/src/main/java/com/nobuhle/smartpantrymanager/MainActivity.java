@@ -2,7 +2,9 @@ package com.nobuhle.smartpantrymanager;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -17,7 +19,8 @@ public class MainActivity extends AppCompatActivity {
     private PantryAdapter pantryAdapter;
     private SmartPantryDatabase database;
 
-    private TextView tvPantrySection;
+    private LinearLayout layoutPantryHeader;
+    private TextView tvPantryArrow;
 
     private boolean pantryExpanded = false;
 
@@ -27,11 +30,7 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        database =
-                new SmartPantryDatabase(this);
-
-        // Add the starter recipes if the recipe table is empty
-        database.seedRecipesIfEmpty();
+        database = new SmartPantryDatabase(this);
 
         recyclerViewPantry =
                 findViewById(R.id.recyclerViewPantry);
@@ -46,8 +45,11 @@ public class MainActivity extends AppCompatActivity {
         Button btnViewRecipes =
                 findViewById(R.id.btnViewRecipes);
 
-        tvPantrySection =
-                findViewById(R.id.tvPantrySection);
+        layoutPantryHeader =
+                findViewById(R.id.layoutPantryHeader);
+
+        tvPantryArrow =
+                findViewById(R.id.tvPantryArrow);
 
         // Add Ingredient button
         btnAddIngredient.setOnClickListener(v -> {
@@ -71,30 +73,20 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        // Expand / collapse pantry section
-        tvPantrySection.setOnClickListener(v -> {
+        // Pantry dropdown
+        layoutPantryHeader.setOnClickListener(v -> {
 
             pantryExpanded = !pantryExpanded;
 
             if (pantryExpanded) {
 
-                recyclerViewPantry.setVisibility(
-                        RecyclerView.VISIBLE
-                );
-
-                tvPantrySection.setText(
-                        "▲  My Pantry Ingredients"
-                );
+                recyclerViewPantry.setVisibility(View.VISIBLE);
+                tvPantryArrow.setText("▲");
 
             } else {
 
-                recyclerViewPantry.setVisibility(
-                        RecyclerView.GONE
-                );
-
-                tvPantrySection.setText(
-                        "▼ Pantry Ingredients"
-                );
+                recyclerViewPantry.setVisibility(View.GONE);
+                tvPantryArrow.setText("▼");
             }
         });
 
