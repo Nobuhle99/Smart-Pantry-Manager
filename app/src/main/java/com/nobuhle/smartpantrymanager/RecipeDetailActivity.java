@@ -1,5 +1,6 @@
 package com.nobuhle.smartpantrymanager;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -17,6 +18,10 @@ public class RecipeDetailActivity extends AppCompatActivity {
     private TextView tvDetailInstructions;
     private LinearLayout ingredientsContainer;
 
+    private Button btnTryRecipe;
+    private Button btnViewIngredients;
+    private Button btnBack;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -27,9 +32,6 @@ public class RecipeDetailActivity extends AppCompatActivity {
 
         database =
                 new SmartPantryDatabase(this);
-
-        Button btnBack =
-                findViewById(R.id.btnBack);
 
         tvDetailRecipeName =
                 findViewById(
@@ -46,7 +48,20 @@ public class RecipeDetailActivity extends AppCompatActivity {
                         R.id.ingredientsContainer
                 );
 
-        btnBack.setOnClickListener(v -> finish());
+        btnTryRecipe =
+                findViewById(
+                        R.id.btnTryRecipe
+                );
+
+        btnViewIngredients =
+                findViewById(
+                        R.id.btnViewIngredients
+                );
+
+        btnBack =
+                findViewById(
+                        R.id.btnBack
+                );
 
         // Get recipe information from the previous screen
         int recipeId =
@@ -65,17 +80,59 @@ public class RecipeDetailActivity extends AppCompatActivity {
                         "recipe_instructions"
                 );
 
-        // Display recipe information
-        tvDetailRecipeName.setText(
-                recipeName
-        );
+        // Display recipe name
+        if (recipeName != null) {
 
-        tvDetailInstructions.setText(
-                recipeInstructions
-        );
+            tvDetailRecipeName.setText(
+                    recipeName
+            );
+        }
+
+        // Display instructions
+        if (recipeInstructions != null) {
+
+            tvDetailInstructions.setText(
+                    recipeInstructions
+            );
+        }
 
         // Load recipe ingredients
         loadRecipeIngredients(recipeId);
+
+        // Try Recipe button
+        btnTryRecipe.setOnClickListener(v -> {
+
+            android.widget.Toast.makeText(
+                    RecipeDetailActivity.this,
+                    "Recipe selected: " + recipeName,
+                    android.widget.Toast.LENGTH_SHORT
+            ).show();
+        });
+
+        // View Ingredients button
+        btnViewIngredients.setOnClickListener(v -> {
+
+            Intent intent =
+                    new Intent(
+                            RecipeDetailActivity.this,
+                            RecipeIngredientsActivity.class
+                    );
+
+            intent.putExtra(
+                    "recipe_id",
+                    recipeId
+            );
+
+            intent.putExtra(
+                    "recipe_name",
+                    recipeName
+            );
+
+            startActivity(intent);
+        });
+
+        // Back button
+        btnBack.setOnClickListener(v -> finish());
     }
 
     private void loadRecipeIngredients(int recipeId) {
@@ -99,6 +156,7 @@ public class RecipeDetailActivity extends AppCompatActivity {
             );
 
             ingredientText.setTextSize(16);
+
             ingredientText.setPadding(
                     0,
                     6,

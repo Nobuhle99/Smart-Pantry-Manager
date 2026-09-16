@@ -2,9 +2,7 @@ package com.nobuhle.smartpantrymanager;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -18,11 +16,6 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerViewPantry;
     private PantryAdapter pantryAdapter;
     private SmartPantryDatabase database;
-
-    private LinearLayout layoutPantryHeader;
-    private TextView tvPantryArrow;
-
-    private boolean pantryExpanded = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,19 +32,16 @@ public class MainActivity extends AppCompatActivity {
                 new LinearLayoutManager(this)
         );
 
+        // Back button
+        Button btnBackWelcome =
+                findViewById(R.id.btnBackWelcome);
+
+        btnBackWelcome.setOnClickListener(v -> finish());
+
+        // Add Ingredient button
         Button btnAddIngredient =
                 findViewById(R.id.btnAddIngredient);
 
-        Button btnViewRecipes =
-                findViewById(R.id.btnViewRecipes);
-
-        layoutPantryHeader =
-                findViewById(R.id.layoutPantryHeader);
-
-        tvPantryArrow =
-                findViewById(R.id.tvPantryArrow);
-
-        // Add Ingredient button
         btnAddIngredient.setOnClickListener(v -> {
 
             Intent intent = new Intent(
@@ -63,6 +53,9 @@ public class MainActivity extends AppCompatActivity {
         });
 
         // View Recipes button
+        Button btnViewRecipes =
+                findViewById(R.id.btnViewRecipes);
+
         btnViewRecipes.setOnClickListener(v -> {
 
             Intent intent = new Intent(
@@ -73,20 +66,28 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        // Pantry dropdown
-        layoutPantryHeader.setOnClickListener(v -> {
+        // Pantry section title
+        TextView tvPantrySection =
+                findViewById(R.id.tvPantrySection);
 
-            pantryExpanded = !pantryExpanded;
+        recyclerViewPantry.setVisibility(
+                RecyclerView.GONE
+        );
 
-            if (pantryExpanded) {
+        tvPantrySection.setOnClickListener(v -> {
 
-                recyclerViewPantry.setVisibility(View.VISIBLE);
-                tvPantryArrow.setText("▲");
+            if (recyclerViewPantry.getVisibility()
+                    == RecyclerView.GONE) {
+
+                recyclerViewPantry.setVisibility(
+                        RecyclerView.VISIBLE
+                );
 
             } else {
 
-                recyclerViewPantry.setVisibility(View.GONE);
-                tvPantryArrow.setText("▼");
+                recyclerViewPantry.setVisibility(
+                        RecyclerView.GONE
+                );
             }
         });
 
