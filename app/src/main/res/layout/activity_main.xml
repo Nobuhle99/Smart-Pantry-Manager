@@ -1,68 +1,92 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:padding="16dp">
-
-    <!-- Back to Welcome -->
-    <Button
-        android:id="@+id/btnBackWelcome"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="← Back" />
 
     <!-- Page title -->
     <TextView
         android:id="@+id/tvPantryTitle"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="28dp"
         android:text="Welcome to My Pantry"
         android:textSize="28sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Page description -->
     <TextView
         android:id="@+id/tvPantrySubtitle"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="6dp"
         android:text="Manage your ingredients and discover delicious recipes."
-        android:textSize="15sp" />
+        android:textSize="15sp"
+        app:layout_constraintTop_toBottomOf="@id/tvPantryTitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- Add Ingredient -->
     <Button
         android:id="@+id/btnAddIngredient"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="28dp"
-        android:text="Add Ingredient" />
+        android:layout_marginTop="20dp"
+        android:text="Add Ingredient"
+        app:layout_constraintTop_toBottomOf="@id/tvPantrySubtitle"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- My Pantry -->
     <Button
         android:id="@+id/btnMyPantry"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:text="My Pantry" />
+        android:layout_marginTop="8dp"
+        android:text="My Pantry"
+        app:layout_constraintTop_toBottomOf="@id/btnAddIngredient"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <!-- View Recipes -->
     <Button
         android:id="@+id/btnViewRecipes"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:text="View Recipes" />
+        android:layout_marginTop="8dp"
+        android:text="View Recipes"
+        app:layout_constraintTop_toBottomOf="@id/btnMyPantry"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Suggested Recipe -->
+    <!-- Suggested Recipes -->
     <Button
         android:id="@+id/btnSuggestedRecipes"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:text="Suggested Recipes" />
+        android:layout_marginTop="8dp"
+        android:text="Suggested Recipes"
+        app:layout_constraintTop_toBottomOf="@id/btnViewRecipes"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-</LinearLayout>
+    <!-- Back button fixed at the bottom -->
+    <Button
+        android:id="@+id/btnBackWelcome"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:text="← Back"
+        android:textSize="16sp"
+        android:minHeight="48dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

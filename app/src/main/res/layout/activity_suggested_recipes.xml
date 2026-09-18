@@ -12,6 +12,7 @@
         android:id="@+id/tvSuggestedRecipesTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginTop="28dp"
         android:text="Suggested Recipes"
         android:textSize="28sp"
         android:textStyle="bold"
@@ -19,7 +20,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Description -->
+    <!-- Page description -->
     <TextView
         android:id="@+id/tvSuggestedRecipesSubtitle"
         android:layout_width="0dp"
@@ -31,16 +32,15 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- No recipes message -->
+    <!-- Message shown when there are no matching recipes -->
     <TextView
         android:id="@+id/tvNoSuggestedRecipes"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:text="No recipes match your pantry yet."
-        android:textSize="18sp"
-        android:textStyle="bold"
+        android:layout_marginTop="28dp"
         android:gravity="center"
+        android:text="No recipes match your pantry yet."
+        android:textSize="16sp"
         android:visibility="gone"
         app:layout_constraintTop_toBottomOf="@id/tvSuggestedRecipesSubtitle"
         app:layout_constraintStart_toStartOf="parent"
@@ -61,12 +61,13 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Back button -->
+    <!-- Back button fixed at bottom -->
     <Button
         android:id="@+id/btnBack"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
+        android:layout_marginBottom="4dp"
         android:text="← Back"
         android:textSize="16sp"
         android:minHeight="48dp"

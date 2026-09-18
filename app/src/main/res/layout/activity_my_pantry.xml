@@ -42,6 +42,17 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- Suggested Recipes -->
+    <Button
+        android:id="@+id/btnSuggestedRecipes"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="✨ Suggested Recipes"
+        app:layout_constraintTop_toBottomOf="@id/btnAddIngredient"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <!-- Scrollable pantry list -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewPantry"
@@ -49,20 +60,21 @@
         android:layout_height="0dp"
         android:layout_marginTop="12dp"
         android:clipToPadding="false"
-        android:paddingBottom="8dp"
+        android:paddingBottom="16dp"
         android:scrollbars="vertical"
         android:overScrollMode="always"
-        app:layout_constraintTop_toBottomOf="@id/btnAddIngredient"
+        app:layout_constraintTop_toBottomOf="@id/btnSuggestedRecipes"
         app:layout_constraintBottom_toTopOf="@id/btnBack"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Back button stays at the bottom -->
+    <!-- Back button fixed at the bottom -->
     <Button
         android:id="@+id/btnBack"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
+        android:layout_marginBottom="4dp"
         android:text="← Back"
         android:textSize="16sp"
         android:minHeight="48dp"

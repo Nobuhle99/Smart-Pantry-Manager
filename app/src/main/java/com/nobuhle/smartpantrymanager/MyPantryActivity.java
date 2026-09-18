@@ -53,6 +53,23 @@ public class MyPantryActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+        // Suggested Recipes button
+        Button btnSuggestedRecipes =
+                findViewById(
+                        R.id.btnSuggestedRecipes
+                );
+
+        btnSuggestedRecipes.setOnClickListener(v -> {
+
+            Intent intent =
+                    new Intent(
+                            MyPantryActivity.this,
+                            SuggestedRecipesActivity.class
+                    );
+
+            startActivity(intent);
+        });
+
         // Back button
         Button btnBack =
                 findViewById(
