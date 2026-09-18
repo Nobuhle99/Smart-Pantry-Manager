@@ -93,5 +93,22 @@ public class MainActivity extends AppCompatActivity {
 
             startActivity(intent);
         });
+
+        // Settings
+        Button btnSettings =
+                findViewById(
+                        R.id.btnSettings
+                );
+
+        btnSettings.setOnClickListener(v -> {
+
+            Intent intent =
+                    new Intent(
+                            MainActivity.this,
+                            SettingsActivity.class
+                    );
+
+            startActivity(intent);
+        });
     }
 }
