@@ -19,11 +19,12 @@
         android:id="@+id/tvPantryTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
+        android:layout_marginTop="20dp"
         android:text="Welcome to My Pantry"
         android:textSize="28sp"
         android:textStyle="bold" />
 
+    <!-- Page description -->
     <TextView
         android:id="@+id/tvPantrySubtitle"
         android:layout_width="match_parent"
@@ -37,34 +38,23 @@
         android:id="@+id/btnAddIngredient"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="28dp"
         android:text="Add Ingredient" />
+
+    <!-- My Pantry -->
+    <Button
+        android:id="@+id/btnMyPantry"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="My Pantry" />
 
     <!-- View Recipes -->
     <Button
         android:id="@+id/btnViewRecipes"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="10dp"
         android:text="View Recipes" />
-
-    <!-- Pantry dropdown heading -->
-    <TextView
-        android:id="@+id/tvPantrySection"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
-        android:padding="8dp"
-        android:text="My Pantry Ingredients ▼"
-        android:textSize="16sp"
-        android:textStyle="bold" />
-
-    <!-- Pantry ingredients -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerViewPantry"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="8dp"
-        android:layout_weight="1" />
 
 </LinearLayout>

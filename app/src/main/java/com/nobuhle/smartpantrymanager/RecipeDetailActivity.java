@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -99,14 +100,61 @@ public class RecipeDetailActivity extends AppCompatActivity {
         // Load recipe ingredients
         loadRecipeIngredients(recipeId);
 
-        // Try Recipe button
+        /*
+         * Try Recipe button
+         *
+         * This now performs strict recipe matching
+         * using the ingredients currently stored
+         * in the pantry.
+         */
         btnTryRecipe.setOnClickListener(v -> {
 
-            android.widget.Toast.makeText(
-                    RecipeDetailActivity.this,
-                    "Recipe selected: " + recipeName,
-                    android.widget.Toast.LENGTH_SHORT
-            ).show();
+            if (recipeId == -1) {
+
+                Toast.makeText(
+                        RecipeDetailActivity.this,
+                        "Unable to identify this recipe.",
+                        Toast.LENGTH_SHORT
+                ).show();
+
+                return;
+            }
+
+            // Get the ingredients required by the recipe
+            List<String> recipeIngredients =
+                    database.getRecipeIngredients(
+                            recipeId
+                    );
+
+            // Get the ingredients currently in the pantry
+            List<PantryItem> pantryItems =
+                    database.getAllPantryItems();
+
+            // Check whether the pantry can make the recipe
+            boolean recipeMatches =
+                    RecipeMatcher.isRecipeMatch(
+                            recipeIngredients,
+                            pantryItems
+                    );
+
+            if (recipeMatches) {
+
+                Toast.makeText(
+                        RecipeDetailActivity.this,
+                        "You have all the ingredients needed for "
+                                + recipeName + "!",
+                        Toast.LENGTH_LONG
+                ).show();
+
+            } else {
+
+                Toast.makeText(
+                        RecipeDetailActivity.this,
+                        "You do not have enough ingredients for "
+                                + recipeName + ".",
+                        Toast.LENGTH_LONG
+                ).show();
+            }
         });
 
         // View Ingredients button
