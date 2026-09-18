@@ -6,8 +6,12 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class SmartPantryDatabase extends SQLiteOpenHelper {
 
@@ -191,6 +195,155 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                         String.valueOf(id)
                 }
         );
+    }
+
+    // =========================================================
+    // EXPIRY CHECK METHODS
+    // =========================================================
+
+    // Get pantry ingredients that are already expired or will expire
+    // within the specified number of days.
+    public List<ExpiringIngredient> getExpiringIngredients(
+            int daysThreshold) {
+
+        List<ExpiringIngredient> expiringIngredients =
+                new ArrayList<>();
+
+        SQLiteDatabase db =
+                this.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery(
+                "SELECT name, expiry_date " +
+                        "FROM pantry_items " +
+                        "WHERE expiry_date IS NOT NULL " +
+                        "AND TRIM(expiry_date) != '' " +
+                        "ORDER BY expiry_date ASC",
+                null
+        );
+
+        if (cursor.moveToFirst()) {
+
+            do {
+
+                String name =
+                        cursor.getString(
+                                cursor.getColumnIndexOrThrow(
+                                        "name"
+                                )
+                        );
+
+                String expiryDateText =
+                        cursor.getString(
+                                cursor.getColumnIndexOrThrow(
+                                        "expiry_date"
+                                )
+                        );
+
+                Date expiryDate =
+                        parseExpiryDate(
+                                expiryDateText
+                        );
+
+                if (expiryDate != null) {
+
+                    // Compare using calendar dates so that an ingredient
+                    // expiring later today is treated as 0 days remaining.
+                    long calendarDaysRemaining =
+                            getCalendarDaysRemaining(
+                                    expiryDate
+                            );
+
+                    if (calendarDaysRemaining <= daysThreshold) {
+
+                        expiringIngredients.add(
+                                new ExpiringIngredient(
+                                        name,
+                                        expiryDateText,
+                                        calendarDaysRemaining
+                                )
+                        );
+                    }
+                }
+
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+
+        return expiringIngredients;
+    }
+
+    private Date parseExpiryDate(
+            String expiryDateText) {
+
+        String[] dateFormats = {
+                "yyyy-MM-dd",
+                "dd/MM/yyyy",
+                "MM/dd/yyyy"
+        };
+
+        for (String format : dateFormats) {
+
+            SimpleDateFormat dateFormat =
+                    new SimpleDateFormat(
+                            format,
+                            Locale.getDefault()
+                    );
+
+            dateFormat.setLenient(false);
+
+            try {
+
+                return dateFormat.parse(
+                        expiryDateText.trim()
+                );
+
+            } catch (ParseException ignored) {
+                // Try the next supported date format.
+            }
+        }
+
+        return null;
+    }
+
+    private long getCalendarDaysRemaining(
+            Date expiryDate) {
+
+        SimpleDateFormat dateFormat =
+                new SimpleDateFormat(
+                        "yyyy-MM-dd",
+                        Locale.getDefault()
+                );
+
+        dateFormat.setLenient(false);
+
+        try {
+
+            Date today =
+                    dateFormat.parse(
+                            dateFormat.format(
+                                    new Date()
+                            )
+                    );
+
+            Date expiry =
+                    dateFormat.parse(
+                            dateFormat.format(
+                                    expiryDate
+                            )
+                    );
+
+            long differenceInMillis =
+                    expiry.getTime()
+                            - today.getTime();
+
+            return differenceInMillis
+                    / (1000L * 60L * 60L * 24L);
+
+        } catch (ParseException e) {
+
+            return Long.MAX_VALUE;
+        }
     }
 
     // =========================================================
