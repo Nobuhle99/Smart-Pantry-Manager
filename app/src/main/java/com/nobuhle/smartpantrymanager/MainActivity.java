@@ -22,7 +22,9 @@ public class MainActivity extends AppCompatActivity {
                         R.id.btnBackWelcome
                 );
 
-        btnBackWelcome.setOnClickListener(v -> finish());
+        btnBackWelcome.setOnClickListener(
+                v -> finish()
+        );
 
         // Add Ingredient
         Button btnAddIngredient =
@@ -70,6 +72,23 @@ public class MainActivity extends AppCompatActivity {
                     new Intent(
                             MainActivity.this,
                             RecipeListActivity.class
+                    );
+
+            startActivity(intent);
+        });
+
+        // Suggested Recipes
+        Button btnSuggestedRecipes =
+                findViewById(
+                        R.id.btnSuggestedRecipes
+                );
+
+        btnSuggestedRecipes.setOnClickListener(v -> {
+
+            Intent intent =
+                    new Intent(
+                            MainActivity.this,
+                            SuggestedRecipesActivity.class
                     );
 
             startActivity(intent);

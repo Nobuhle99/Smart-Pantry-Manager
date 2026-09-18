@@ -100,61 +100,13 @@ public class RecipeDetailActivity extends AppCompatActivity {
         // Load recipe ingredients
         loadRecipeIngredients(recipeId);
 
-        /*
-         * Try Recipe button
-         *
-         * This now performs strict recipe matching
-         * using the ingredients currently stored
-         * in the pantry.
-         */
+        // Try Recipe button
         btnTryRecipe.setOnClickListener(v -> {
 
-            if (recipeId == -1) {
-
-                Toast.makeText(
-                        RecipeDetailActivity.this,
-                        "Unable to identify this recipe.",
-                        Toast.LENGTH_SHORT
-                ).show();
-
-                return;
-            }
-
-            // Get the ingredients required by the recipe
-            List<String> recipeIngredients =
-                    database.getRecipeIngredients(
-                            recipeId
-                    );
-
-            // Get the ingredients currently in the pantry
-            List<PantryItem> pantryItems =
-                    database.getAllPantryItems();
-
-            // Check whether the pantry can make the recipe
-            boolean recipeMatches =
-                    RecipeMatcher.isRecipeMatch(
-                            recipeIngredients,
-                            pantryItems
-                    );
-
-            if (recipeMatches) {
-
-                Toast.makeText(
-                        RecipeDetailActivity.this,
-                        "You have all the ingredients needed for "
-                                + recipeName + "!",
-                        Toast.LENGTH_LONG
-                ).show();
-
-            } else {
-
-                Toast.makeText(
-                        RecipeDetailActivity.this,
-                        "You do not have enough ingredients for "
-                                + recipeName + ".",
-                        Toast.LENGTH_LONG
-                ).show();
-            }
+            checkRecipeAvailability(
+                    recipeId,
+                    recipeName
+            );
         });
 
         // View Ingredients button
@@ -180,10 +132,74 @@ public class RecipeDetailActivity extends AppCompatActivity {
         });
 
         // Back button
-        btnBack.setOnClickListener(v -> finish());
+        btnBack.setOnClickListener(
+                v -> finish()
+        );
     }
 
-    private void loadRecipeIngredients(int recipeId) {
+    /**
+     * Checks the selected recipe against
+     * the ingredients currently stored
+     * in the pantry.
+     */
+    private void checkRecipeAvailability(
+            int recipeId,
+            String recipeName) {
+
+        if (recipeId == -1) {
+
+            Toast.makeText(
+                    this,
+                    "Recipe information could not be found.",
+                    Toast.LENGTH_SHORT
+            ).show();
+
+            return;
+        }
+
+        // Get recipe requirements
+        List<String> recipeIngredients =
+                database.getRecipeIngredients(
+                        recipeId
+                );
+
+        // Get current pantry contents
+        List<PantryItem> pantryItems =
+                database.getAllPantryItems();
+
+        // Ask RecipeMatcher for the result
+        String matchMessage =
+                RecipeMatcher.getMatchMessage(
+                        recipeIngredients,
+                        pantryItems
+                );
+
+        if (matchMessage.equals("MATCH")) {
+
+            Toast.makeText(
+                    this,
+                    "You have all the ingredients needed for "
+                            + recipeName
+                            + "!",
+                    Toast.LENGTH_LONG
+            ).show();
+
+        } else {
+
+            Toast.makeText(
+                    this,
+                    matchMessage,
+                    Toast.LENGTH_LONG
+            ).show();
+        }
+    }
+
+    /**
+     * Loads and displays the ingredients
+     * required by the selected recipe.
+     */
+    private void loadRecipeIngredients(
+            int recipeId) {
 
         if (recipeId == -1) {
             return;

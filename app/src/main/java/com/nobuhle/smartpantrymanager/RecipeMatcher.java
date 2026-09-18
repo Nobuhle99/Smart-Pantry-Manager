@@ -8,25 +8,35 @@ public class RecipeMatcher {
     /**
      * Checks whether the pantry contains everything
      * required for a recipe.
-     *
-     * @param recipeIngredients ingredients required by the recipe
-     * @param pantryItems ingredients currently available in the pantry
-     * @return true if all required ingredients are available
      */
     public static boolean isRecipeMatch(
+            List<String> recipeIngredients,
+            List<PantryItem> pantryItems) {
+
+        return getMatchMessage(
+                recipeIngredients,
+                pantryItems
+        ).equals("MATCH");
+    }
+
+    /**
+     * Returns a message explaining whether the recipe
+     * can be made with the current pantry.
+     */
+    public static String getMatchMessage(
             List<String> recipeIngredients,
             List<PantryItem> pantryItems) {
 
         if (recipeIngredients == null ||
                 recipeIngredients.isEmpty()) {
 
-            return false;
+            return "No ingredients were found for this recipe.";
         }
 
         if (pantryItems == null ||
                 pantryItems.isEmpty()) {
 
-            return false;
+            return "Your pantry is empty.";
         }
 
         // Check every ingredient required by the recipe
@@ -36,10 +46,14 @@ public class RecipeMatcher {
                     parseIngredient(recipeIngredient);
 
             if (requirement == null) {
-                return false;
+
+                return "Unable to read one of the recipe ingredients.";
             }
 
-            boolean ingredientMatched = false;
+            boolean ingredientNameFound = false;
+            boolean unitFound = false;
+
+            double availableQuantity = 0;
 
             // Compare with every pantry item
             for (PantryItem pantryItem : pantryItems) {
@@ -51,6 +65,8 @@ public class RecipeMatcher {
                     continue;
                 }
 
+                ingredientNameFound = true;
+
                 if (!unitsMatch(
                         requirement.unit,
                         pantryItem.getUnit())) {
@@ -58,34 +74,64 @@ public class RecipeMatcher {
                     continue;
                 }
 
-                // Pantry quantity must be equal to or greater
-                // than the quantity required by the recipe
-                if (pantryItem.getQuantity()
-                        >= requirement.quantity) {
+                unitFound = true;
 
-                    ingredientMatched = true;
-                    break;
-                }
+                // Add quantities from duplicate pantry records
+                availableQuantity +=
+                        pantryItem.getQuantity();
             }
 
-            // If even one ingredient is missing,
-            // the recipe does not match.
-            if (!ingredientMatched) {
-                return false;
+            // Ingredient does not exist
+            if (!ingredientNameFound) {
+
+                return "Missing ingredient: "
+                        + requirement.name
+                        + ".";
+            }
+
+            // Ingredient exists but units differ
+            if (!unitFound) {
+
+                return "Unit mismatch for "
+                        + requirement.name
+                        + ". Recipe requires "
+                        + requirement.unit
+                        + ".";
+            }
+
+            // Ingredient exists but quantity is insufficient
+            if (availableQuantity <
+                    requirement.quantity) {
+
+                return "Not enough "
+                        + requirement.name
+                        + ". You have "
+                        + formatQuantity(availableQuantity)
+                        + " "
+                        + requirement.unit
+                        + " but need "
+                        + formatQuantity(requirement.quantity)
+                        + " "
+                        + requirement.unit
+                        + ".";
             }
         }
 
-        // Every required ingredient was found
-        return true;
+        // All required ingredients are available
+        return "MATCH";
     }
 
     /**
-     * Handles basic singular/plural differences.
+     * Matches ingredient names while handling
+     * common singular/plural differences.
      *
      * Examples:
+     *
      * chicken = chickens
-     * tomato = tomatoes
      * onion = onions
+     * tomato = tomatoes
+     * potato = potatoes
+     * berry = berries
      */
     private static boolean namesMatch(
             String recipeName,
@@ -103,12 +149,18 @@ public class RecipeMatcher {
         String pantry =
                 normalizeName(pantryName);
 
+        // Exact match
         if (recipe.equals(pantry)) {
+
             return true;
         }
 
-        // Basic plural handling
+        // -----------------------------------------
+        // Basic "s" plural handling
+        // -----------------------------------------
+
         if (recipe.endsWith("s") &&
+                recipe.length() > 1 &&
                 recipe.substring(
                         0,
                         recipe.length() - 1
@@ -118,6 +170,7 @@ public class RecipeMatcher {
         }
 
         if (pantry.endsWith("s") &&
+                pantry.length() > 1 &&
                 pantry.substring(
                         0,
                         pantry.length() - 1
@@ -126,22 +179,56 @@ public class RecipeMatcher {
             return true;
         }
 
-        // Basic "ies" plural handling
+        // -----------------------------------------
+        // "es" plural handling
+        // tomato = tomatoes
+        // potato = potatoes
+        // -----------------------------------------
+
+        if (recipe.endsWith("es") &&
+                recipe.length() > 2 &&
+                recipe.substring(
+                        0,
+                        recipe.length() - 2
+                ).equals(pantry)) {
+
+            return true;
+        }
+
+        if (pantry.endsWith("es") &&
+                pantry.length() > 2 &&
+                pantry.substring(
+                        0,
+                        pantry.length() - 2
+                ).equals(recipe)) {
+
+            return true;
+        }
+
+        // -----------------------------------------
+        // "ies" plural handling
+        // berry = berries
+        // -----------------------------------------
+
         if (recipe.endsWith("ies") &&
+                recipe.length() > 3 &&
                 recipe.substring(
                                 0,
                                 recipe.length() - 3
-                        ).concat("y")
+                        )
+                        .concat("y")
                         .equals(pantry)) {
 
             return true;
         }
 
         if (pantry.endsWith("ies") &&
+                pantry.length() > 3 &&
                 pantry.substring(
                                 0,
                                 pantry.length() - 3
-                        ).concat("y")
+                        )
+                        .concat("y")
                         .equals(recipe)) {
 
             return true;
@@ -151,7 +238,7 @@ public class RecipeMatcher {
     }
 
     /**
-     * Normalises ingredient names for comparison.
+     * Normalises ingredient names.
      */
     private static String normalizeName(
             String name) {
@@ -164,9 +251,6 @@ public class RecipeMatcher {
 
     /**
      * Compares units.
-     *
-     * At this stage we require the same unit.
-     * Unit conversion can be added later if needed.
      */
     private static boolean unitsMatch(
             String recipeUnit,
@@ -186,15 +270,30 @@ public class RecipeMatcher {
     }
 
     /**
+     * Formats quantities without unnecessary .0
+     */
+    private static String formatQuantity(
+            double quantity) {
+
+        if (quantity ==
+                Math.floor(quantity)) {
+
+            return String.valueOf(
+                    (int) quantity
+            );
+        }
+
+        return String.valueOf(
+                quantity
+        );
+    }
+
+    /**
      * Converts a recipe ingredient string such as:
      *
      * chicken - 500.0 g
      *
-     * into:
-     *
-     * name = chicken
-     * quantity = 500.0
-     * unit = g
+     * into its name, quantity and unit.
      */
     private static IngredientRequirement parseIngredient(
             String ingredientText) {
@@ -209,9 +308,13 @@ public class RecipeMatcher {
                 ingredientText.trim();
 
         String[] parts =
-                text.split("\\s*-\\s*", 2);
+                text.split(
+                        "\\s*-\\s*",
+                        2
+                );
 
         if (parts.length != 2) {
+
             return null;
         }
 
@@ -222,9 +325,13 @@ public class RecipeMatcher {
                 parts[1].trim();
 
         String[] quantityParts =
-                quantityAndUnit.split("\\s+", 2);
+                quantityAndUnit.split(
+                        "\\s+",
+                        2
+                );
 
         if (quantityParts.length != 2) {
+
             return null;
         }
 
@@ -259,8 +366,7 @@ public class RecipeMatcher {
     }
 
     /**
-     * Small internal class used to hold
-     * a recipe ingredient requirement.
+     * Stores a recipe ingredient requirement.
      */
     private static class IngredientRequirement {
 
