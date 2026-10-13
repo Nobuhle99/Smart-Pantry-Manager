@@ -8,6 +8,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.widget.Button;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -15,6 +16,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MyPantryActivity extends AppCompatActivity {
 
@@ -23,6 +26,7 @@ public class MyPantryActivity extends AppCompatActivity {
     private SmartPantryDatabase database;
 
     private SharedPreferences preferences;
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private static final String PREFS_NAME =
             "SmartPantrySettings";
@@ -118,19 +122,29 @@ public class MyPantryActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        executor.shutdown();
+    }
+
     private void loadPantryItems() {
 
-        List<PantryItem> pantryItems =
-                database.getAllPantryItems();
+        executor.execute(() -> {
+            List<PantryItem> pantryItems =
+                    database.getAllPantryItems();
 
-        pantryAdapter =
-                new PantryAdapter(
-                        pantryItems
+            runOnUiThread(() -> {
+                pantryAdapter =
+                        new PantryAdapter(
+                                pantryItems
+                        );
+
+                recyclerViewPantry.setAdapter(
+                        pantryAdapter
                 );
-
-        recyclerViewPantry.setAdapter(
-                pantryAdapter
-        );
+            });
+        });
     }
 
     private void checkExpiryNotifications() {
@@ -164,17 +178,35 @@ public class MyPantryActivity extends AppCompatActivity {
             }
         }
 
-        List<ExpiringIngredient> expiringIngredients =
-                database.getExpiringIngredients(3);
+        executor.execute(() -> {
+            List<ExpiringIngredient> expiringIngredients =
+                    database.getExpiringIngredients(3);
 
-        for (ExpiringIngredient ingredient :
-                expiringIngredients) {
+            for (ExpiringIngredient ingredient :
+                    expiringIngredients) {
 
-            ExpiryNotificationHelper.showExpiryNotification(
-                    this,
-                    ingredient.getName(),
-                    ingredient.getDaysRemaining()
-            );
+                ExpiryNotificationHelper.showExpiryNotification(
+                        MyPantryActivity.this,
+                        ingredient.getName(),
+                        ingredient.getDaysRemaining()
+                );
+            }
+        });
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode,
+            @NonNull String[] permissions,
+            @NonNull int[] grantResults) {
+
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == NOTIFICATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 &&
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                checkExpiryNotifications();
+            }
         }
     }
 }

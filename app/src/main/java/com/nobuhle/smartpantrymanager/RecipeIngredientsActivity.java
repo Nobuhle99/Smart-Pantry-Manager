@@ -8,6 +8,8 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class RecipeIngredientsActivity extends AppCompatActivity {
 
@@ -16,6 +18,8 @@ public class RecipeIngredientsActivity extends AppCompatActivity {
     private TextView tvIngredientsRecipeName;
     private LinearLayout recipeIngredientsContainer;
     private Button btnBackIngredients;
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,38 +77,49 @@ public class RecipeIngredientsActivity extends AppCompatActivity {
         );
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        executor.shutdown();
+    }
+
     private void loadIngredients(int recipeId) {
 
         if (recipeId == -1) {
             return;
         }
 
-        List<String> ingredients =
-                database.getRecipeIngredients(
-                        recipeId
-                );
+        executor.execute(() -> {
+            List<String> ingredients =
+                    database.getRecipeIngredients(
+                            recipeId
+                    );
 
-        for (String ingredient : ingredients) {
+            runOnUiThread(() -> {
+                recipeIngredientsContainer.removeAllViews();
+                for (String ingredient : ingredients) {
 
-            TextView ingredientText =
-                    new TextView(this);
+                    TextView ingredientText =
+                            new TextView(RecipeIngredientsActivity.this);
 
-            ingredientText.setText(
-                    "• " + ingredient
-            );
+                    ingredientText.setText(
+                            "• " + ingredient
+                    );
 
-            ingredientText.setTextSize(17);
+                    ingredientText.setTextSize(17);
 
-            ingredientText.setPadding(
-                    0,
-                    10,
-                    0,
-                    10
-            );
+                    ingredientText.setPadding(
+                            0,
+                            10,
+                            0,
+                            10
+                    );
 
-            recipeIngredientsContainer.addView(
-                    ingredientText
-            );
-        }
+                    recipeIngredientsContainer.addView(
+                            ingredientText
+                    );
+                }
+            });
+        });
     }
 }

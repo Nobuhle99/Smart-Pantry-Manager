@@ -10,12 +10,15 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SuggestedRecipesActivity extends AppCompatActivity {
 
     private RecyclerView recyclerViewSuggestedRecipes;
     private TextView tvNoSuggestedRecipes;
     private SmartPantryDatabase database;
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,71 +66,77 @@ public class SuggestedRecipesActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        executor.shutdown();
+    }
+
     private void loadSuggestedRecipes() {
 
-        // Get all ingredients currently in the pantry
-        List<PantryItem> pantryItems =
-                database.getAllPantryItems();
+        executor.execute(() -> {
+            // Get all ingredients currently in the pantry
+            List<PantryItem> pantryItems =
+                    database.getAllPantryItems();
 
-        // Get all available recipes
-        List<Recipe> allRecipes =
-                database.getAllRecipes();
+            // Get all available recipes
+            List<Recipe> allRecipes =
+                    database.getAllRecipes();
 
-        // Store only recipes that match the pantry
-        List<Recipe> suggestedRecipes =
-                new ArrayList<>();
+            // Store only recipes that match the pantry
+            List<Recipe> suggestedRecipes =
+                    new ArrayList<>();
 
-        // Check every recipe
-        for (Recipe recipe : allRecipes) {
+            // Check every recipe
+            for (Recipe recipe : allRecipes) {
 
-            List<String> recipeIngredients =
-                    database.getRecipeIngredients(
-                            recipe.getId()
-                    );
+                List<String> recipeIngredients =
+                        database.getRecipeIngredients(
+                                recipe.getId()
+                        );
 
-            boolean matches =
-                    RecipeMatcher.isRecipeMatch(
-                            recipeIngredients,
-                            pantryItems
-                    );
+                boolean matches =
+                        RecipeMatcher.isRecipeMatch(
+                                recipeIngredients,
+                                pantryItems
+                        );
 
-            if (matches) {
-
-                suggestedRecipes.add(
-                        recipe
-                );
+                if (matches) {
+                    suggestedRecipes.add(recipe);
+                }
             }
-        }
 
-        // Display matching recipes
-        if (suggestedRecipes.isEmpty()) {
+            runOnUiThread(() -> {
+                if (suggestedRecipes.isEmpty()) {
 
-            recyclerViewSuggestedRecipes.setVisibility(
-                    RecyclerView.GONE
-            );
-
-            tvNoSuggestedRecipes.setVisibility(
-                    TextView.VISIBLE
-            );
-
-        } else {
-
-            recyclerViewSuggestedRecipes.setVisibility(
-                    RecyclerView.VISIBLE
-            );
-
-            tvNoSuggestedRecipes.setVisibility(
-                    TextView.GONE
-            );
-
-            RecipeAdapter recipeAdapter =
-                    new RecipeAdapter(
-                            suggestedRecipes
+                    recyclerViewSuggestedRecipes.setVisibility(
+                            RecyclerView.GONE
                     );
 
-            recyclerViewSuggestedRecipes.setAdapter(
-                    recipeAdapter
-            );
-        }
+                    tvNoSuggestedRecipes.setVisibility(
+                            TextView.VISIBLE
+                    );
+
+                } else {
+
+                    recyclerViewSuggestedRecipes.setVisibility(
+                            RecyclerView.VISIBLE
+                    );
+
+                    tvNoSuggestedRecipes.setVisibility(
+                            TextView.GONE
+                    );
+
+                    RecipeAdapter recipeAdapter =
+                            new RecipeAdapter(
+                                    suggestedRecipes
+                            );
+
+                    recyclerViewSuggestedRecipes.setAdapter(
+                            recipeAdapter
+                    );
+                }
+            });
+        });
     }
 }

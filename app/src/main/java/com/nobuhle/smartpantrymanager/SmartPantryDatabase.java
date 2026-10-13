@@ -58,6 +58,7 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
         );
 
         seedRecipesIfEmpty(db);
+        seedAdditionalRecipesIfMissing(db);
     }
 
     @Override
@@ -412,13 +413,12 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
     // SELECT all recipes
     public List<Recipe> getAllRecipes() {
 
-        seedRecipesIfEmpty();
+        SQLiteDatabase db = this.getWritableDatabase();
+        seedRecipesIfEmpty(db);
+        seedAdditionalRecipesIfMissing(db);
 
         List<Recipe> recipes =
                 new ArrayList<>();
-
-        SQLiteDatabase db =
-                this.getReadableDatabase();
 
         Cursor cursor = null;
 
@@ -584,6 +584,7 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 this.getWritableDatabase();
 
         seedRecipesIfEmpty(db);
+        seedAdditionalRecipesIfMissing(db);
     }
 
     public void seedRecipesIfEmpty(SQLiteDatabase db) {
@@ -746,7 +747,7 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
         );
 
         insertRecipeIngredient(db, recipeId, "pasta", 250, "g");
-        insertRecipeIngredient(db, recipeId, "tomato", 3, "whole");
+        insertRecipeIngredient(db, recipeId, "tomato", 2, "whole");
         insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
 
         // 10. Chicken and Rice
@@ -909,5 +910,97 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
         insertRecipeIngredient(db, recipeId, "beans", 1, "can");
         insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
         insertRecipeIngredient(db, recipeId, "tomato", 2, "whole");
+    }
+
+    public void seedAdditionalRecipesIfMissing(SQLiteDatabase db) {
+
+        if (db == null) {
+            return;
+        }
+
+        try {
+            // Update Tomato Pasta quantity requirement to 2 tomatoes if it was 3
+            db.execSQL(
+                    "UPDATE recipe_ingredients SET required_quantity = 2 " +
+                            "WHERE ingredient_name = 'tomato' AND required_quantity = 3 " +
+                            "AND recipe_id IN (SELECT id FROM recipes WHERE name = 'Tomato Pasta')"
+            );
+
+            // Add Chicken & Tomato Skillet if missing
+            if (!recipeExists(db, "Chicken & Tomato Skillet")) {
+
+                long recipeId = insertRecipe(
+                        db,
+                        new Recipe(
+                                "Chicken & Tomato Skillet",
+                                "Season and cook the chicken in a pan. Add chopped onions " +
+                                        "and tomatoes, then simmer until chicken is cooked through."
+                        )
+                );
+
+                insertRecipeIngredient(db, recipeId, "chicken", 400, "g");
+                insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
+                insertRecipeIngredient(db, recipeId, "tomato", 2, "whole");
+            }
+
+            // Add Chicken & Onion Stir Fry if missing
+            if (!recipeExists(db, "Chicken & Onion Stir Fry")) {
+
+                long recipeId = insertRecipe(
+                        db,
+                        new Recipe(
+                                "Chicken & Onion Stir Fry",
+                                "Slice chicken and onions. Stir-fry in a hot skillet with seasoning until golden brown."
+                        )
+                );
+
+                insertRecipeIngredient(db, recipeId, "chicken", 300, "g");
+                insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
+            }
+
+            // Add Simple Pasta with Onion if missing
+            if (!recipeExists(db, "Simple Pasta with Onion")) {
+
+                long recipeId = insertRecipe(
+                        db,
+                        new Recipe(
+                                "Simple Pasta with Onion",
+                                "Boil the pasta. Sauté onions in butter or oil, then toss with the warm pasta."
+                        )
+                );
+
+                insertRecipeIngredient(db, recipeId, "pasta", 200, "g");
+                insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
+            }
+
+        } catch (Exception ignored) {
+            // Safe fallback if tables do not exist yet
+        }
+    }
+
+    private boolean recipeExists(SQLiteDatabase db, String name) {
+
+        Cursor cursor = null;
+
+        try {
+
+            cursor = db.rawQuery(
+                    "SELECT COUNT(*) FROM recipes WHERE name = ?",
+                    new String[]{name}
+            );
+
+            if (cursor != null && cursor.moveToFirst()) {
+                return cursor.getInt(0) > 0;
+            }
+
+        } catch (Exception ignored) {
+            return false;
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+
+        return false;
     }
 }

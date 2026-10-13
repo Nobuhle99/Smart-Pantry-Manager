@@ -8,12 +8,15 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class RecipeListActivity extends AppCompatActivity {
 
     private RecyclerView recyclerViewRecipes;
     private RecipeAdapter recipeAdapter;
     private SmartPantryDatabase database;
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,16 +44,26 @@ public class RecipeListActivity extends AppCompatActivity {
         loadRecipes();
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        executor.shutdown();
+    }
+
     private void loadRecipes() {
 
-        List<Recipe> recipes =
-                database.getAllRecipes();
+        executor.execute(() -> {
+            List<Recipe> recipes =
+                    database.getAllRecipes();
 
-        recipeAdapter =
-                new RecipeAdapter(recipes);
+            runOnUiThread(() -> {
+                recipeAdapter =
+                        new RecipeAdapter(recipes);
 
-        recyclerViewRecipes.setAdapter(
-                recipeAdapter
-        );
+                recyclerViewRecipes.setAdapter(
+                        recipeAdapter
+                );
+            });
+        });
     }
 }

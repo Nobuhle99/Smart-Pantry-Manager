@@ -28,7 +28,7 @@ public class ExpiryNotificationHelper {
                     new NotificationChannel(
                             CHANNEL_ID,
                             CHANNEL_NAME,
-                            NotificationManager.IMPORTANCE_DEFAULT
+                            NotificationManager.IMPORTANCE_HIGH
                     );
 
             channel.setDescription(
@@ -89,7 +89,7 @@ public class ExpiryNotificationHelper {
                         CHANNEL_ID
                 )
                         .setSmallIcon(
-                                android.R.drawable.ic_dialog_alert
+                                R.mipmap.ic_launcher
                         )
                         .setContentTitle(
                                 "Pantry Expiry Alert"
@@ -97,8 +97,15 @@ public class ExpiryNotificationHelper {
                         .setContentText(
                                 message
                         )
+                        .setStyle(
+                                new NotificationCompat.BigTextStyle()
+                                        .bigText(message)
+                        )
                         .setPriority(
-                                NotificationCompat.PRIORITY_DEFAULT
+                                NotificationCompat.PRIORITY_HIGH
+                        )
+                        .setDefaults(
+                                NotificationCompat.DEFAULT_ALL
                         )
                         .setAutoCancel(true);
 
@@ -107,9 +114,13 @@ public class ExpiryNotificationHelper {
                         context
                 );
 
-        notificationManager.notify(
-                ingredientName.hashCode(),
-                builder.build()
-        );
+        try {
+            notificationManager.notify(
+                    ingredientName.hashCode(),
+                    builder.build()
+            );
+        } catch (SecurityException ignored) {
+            // Permission missing or revoked
+        }
     }
 }

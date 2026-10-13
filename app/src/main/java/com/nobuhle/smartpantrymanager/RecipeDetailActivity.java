@@ -10,6 +10,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class RecipeDetailActivity extends AppCompatActivity {
 
@@ -22,6 +24,8 @@ public class RecipeDetailActivity extends AppCompatActivity {
     private Button btnTryRecipe;
     private Button btnViewIngredients;
     private Button btnBack;
+
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -137,6 +141,12 @@ public class RecipeDetailActivity extends AppCompatActivity {
         );
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        executor.shutdown();
+    }
+
     /**
      * Checks the selected recipe against
      * the ingredients currently stored
@@ -157,41 +167,45 @@ public class RecipeDetailActivity extends AppCompatActivity {
             return;
         }
 
-        // Get recipe requirements
-        List<String> recipeIngredients =
-                database.getRecipeIngredients(
-                        recipeId
-                );
+        executor.execute(() -> {
+            // Get recipe requirements
+            List<String> recipeIngredients =
+                    database.getRecipeIngredients(
+                            recipeId
+                    );
 
-        // Get current pantry contents
-        List<PantryItem> pantryItems =
-                database.getAllPantryItems();
+            // Get current pantry contents
+            List<PantryItem> pantryItems =
+                    database.getAllPantryItems();
 
-        // Ask RecipeMatcher for the result
-        String matchMessage =
-                RecipeMatcher.getMatchMessage(
-                        recipeIngredients,
-                        pantryItems
-                );
+            // Ask RecipeMatcher for the result
+            String matchMessage =
+                    RecipeMatcher.getMatchMessage(
+                            recipeIngredients,
+                            pantryItems
+                    );
 
-        if (matchMessage.equals("MATCH")) {
+            runOnUiThread(() -> {
+                if (matchMessage.equals("MATCH")) {
 
-            Toast.makeText(
-                    this,
-                    "You have all the ingredients needed for "
-                            + recipeName
-                            + "!",
-                    Toast.LENGTH_LONG
-            ).show();
+                    Toast.makeText(
+                            RecipeDetailActivity.this,
+                            "You have all the ingredients needed for "
+                                    + recipeName
+                                    + "!",
+                            Toast.LENGTH_LONG
+                    ).show();
 
-        } else {
+                } else {
 
-            Toast.makeText(
-                    this,
-                    matchMessage,
-                    Toast.LENGTH_LONG
-            ).show();
-        }
+                    Toast.makeText(
+                            RecipeDetailActivity.this,
+                            matchMessage,
+                            Toast.LENGTH_LONG
+                    ).show();
+                }
+            });
+        });
     }
 
     /**
@@ -205,32 +219,37 @@ public class RecipeDetailActivity extends AppCompatActivity {
             return;
         }
 
-        List<String> ingredients =
-                database.getRecipeIngredients(
-                        recipeId
-                );
+        executor.execute(() -> {
+            List<String> ingredients =
+                    database.getRecipeIngredients(
+                            recipeId
+                    );
 
-        for (String ingredient : ingredients) {
+            runOnUiThread(() -> {
+                ingredientsContainer.removeAllViews();
+                for (String ingredient : ingredients) {
 
-            TextView ingredientText =
-                    new TextView(this);
+                    TextView ingredientText =
+                            new TextView(RecipeDetailActivity.this);
 
-            ingredientText.setText(
-                    "• " + ingredient
-            );
+                    ingredientText.setText(
+                            "• " + ingredient
+                    );
 
-            ingredientText.setTextSize(16);
+                    ingredientText.setTextSize(16);
 
-            ingredientText.setPadding(
-                    0,
-                    6,
-                    0,
-                    6
-            );
+                    ingredientText.setPadding(
+                            0,
+                            6,
+                            0,
+                            6
+                    );
 
-            ingredientsContainer.addView(
-                    ingredientText
-            );
-        }
+                    ingredientsContainer.addView(
+                            ingredientText
+                    );
+                }
+            });
+        });
     }
 }
