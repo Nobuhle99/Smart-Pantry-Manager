@@ -155,4 +155,10 @@ Check whether the recipe catalogue has been initialised and review any error mes
 **Repository:** [Nobuhle99/Smart-Pantry-Manager](https://github.com/Nobuhle99/Smart-Pantry-Manager)  
 **Primary Purpose:** Pantry management and ingredient-based recipe suggestions to support meal planning and reduce food waste.
 
+## Video Demonstration
 
+Watch the Smart Pantry Manager application demonstration:
+
+[**Watch the Smart Pantry Manager Demo**](https://drive.google.com/file/d/1o7mJcMjd8MAHkFus5mBcQj0iCRE3qFgn/view?usp=drive_link)
+
+The demonstration covers the application's main features, including pantry management, ingredient updates and deletion, recipe suggestions, database functionality, and selected code components.
