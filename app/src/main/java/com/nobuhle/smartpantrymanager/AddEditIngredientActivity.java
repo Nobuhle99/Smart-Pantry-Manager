@@ -91,6 +91,11 @@ public class AddEditIngredientActivity extends AppCompatActivity {
                             "ingredient_unit"
                     );
 
+            String expiryDate =
+                    getIntent().getStringExtra(
+                            "ingredient_expiry_date"
+                    );
+
             // Put existing information into the fields
             edtIngredientName.setText(name);
 
@@ -99,6 +104,10 @@ public class AddEditIngredientActivity extends AppCompatActivity {
             );
 
             edtUnit.setText(unit);
+
+            if (expiryDate != null) {
+                edtExpiryDate.setText(expiryDate);
+            }
 
             // Change button text
             btnSaveIngredient.setText(
@@ -209,7 +218,8 @@ public class AddEditIngredientActivity extends AppCompatActivity {
                 new PantryItem(
                         name,
                         quantity,
-                        unit
+                        unit,
+                        expiryDate
                 );
 
         // =====================================================

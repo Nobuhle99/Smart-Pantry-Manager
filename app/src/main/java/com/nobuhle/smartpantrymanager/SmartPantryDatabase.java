@@ -16,7 +16,7 @@ import java.util.Locale;
 public class SmartPantryDatabase extends SQLiteOpenHelper {
 
     private static final String DATABASE_NAME = "smart_pantry.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 3;
 
     public SmartPantryDatabase(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -27,7 +27,7 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
 
         // Pantry table
         db.execSQL(
-                "CREATE TABLE pantry_items (" +
+                "CREATE TABLE IF NOT EXISTS pantry_items (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                         "name TEXT NOT NULL, " +
                         "quantity REAL NOT NULL, " +
@@ -38,7 +38,7 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
 
         // Recipe table
         db.execSQL(
-                "CREATE TABLE recipes (" +
+                "CREATE TABLE IF NOT EXISTS recipes (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                         "name TEXT NOT NULL, " +
                         "instructions TEXT NOT NULL" +
@@ -47,7 +47,7 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
 
         // Recipe ingredients table
         db.execSQL(
-                "CREATE TABLE recipe_ingredients (" +
+                "CREATE TABLE IF NOT EXISTS recipe_ingredients (" +
                         "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                         "recipe_id INTEGER NOT NULL, " +
                         "ingredient_name TEXT NOT NULL, " +
@@ -56,6 +56,8 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                         "FOREIGN KEY(recipe_id) REFERENCES recipes(id)" +
                         ")"
         );
+
+        seedRecipesIfEmpty(db);
     }
 
     @Override
@@ -64,10 +66,25 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
             int oldVersion,
             int newVersion) {
 
-        db.execSQL("DROP TABLE IF EXISTS recipe_ingredients");
-        db.execSQL("DROP TABLE IF EXISTS recipes");
-        db.execSQL("DROP TABLE IF EXISTS pantry_items");
+        if (oldVersion < 2) {
+            try {
+                db.execSQL("ALTER TABLE pantry_items ADD COLUMN expiry_date TEXT");
+            } catch (Exception ignored) {
+                // Column may already exist
+            }
+        }
 
+        onCreate(db);
+    }
+
+    @Override
+    public void onDowngrade(
+            SQLiteDatabase db,
+            int oldVersion,
+            int newVersion) {
+
+        // Prevent crashes when running an older or mismatched database version.
+        // Uses IF NOT EXISTS to safely preserve all existing tables and user data.
         onCreate(db);
     }
 
@@ -107,51 +124,64 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
         SQLiteDatabase db =
                 this.getReadableDatabase();
 
-        Cursor cursor = db.rawQuery(
-                "SELECT id, name, quantity, unit " +
-                        "FROM pantry_items " +
-                        "ORDER BY id DESC",
-                null
-        );
+        Cursor cursor = null;
 
-        if (cursor.moveToFirst()) {
+        try {
+            cursor = db.rawQuery(
+                    "SELECT id, name, quantity, unit, expiry_date " +
+                            "FROM pantry_items " +
+                            "ORDER BY id DESC",
+                    null
+            );
 
-            do {
+            if (cursor != null && cursor.moveToFirst()) {
 
-                int id =
-                        cursor.getInt(
-                                cursor.getColumnIndexOrThrow("id")
-                        );
+                do {
 
-                String name =
-                        cursor.getString(
-                                cursor.getColumnIndexOrThrow("name")
-                        );
+                    int id =
+                            cursor.getInt(
+                                    cursor.getColumnIndexOrThrow("id")
+                            );
 
-                double quantity =
-                        cursor.getDouble(
-                                cursor.getColumnIndexOrThrow("quantity")
-                        );
+                    String name =
+                            cursor.getString(
+                                    cursor.getColumnIndexOrThrow("name")
+                            );
 
-                String unit =
-                        cursor.getString(
-                                cursor.getColumnIndexOrThrow("unit")
-                        );
+                    double quantity =
+                            cursor.getDouble(
+                                    cursor.getColumnIndexOrThrow("quantity")
+                            );
 
-                PantryItem item =
-                        new PantryItem(
-                                id,
-                                name,
-                                quantity,
-                                unit
-                        );
+                    String unit =
+                            cursor.getString(
+                                    cursor.getColumnIndexOrThrow("unit")
+                            );
 
-                pantryItems.add(item);
+                    int expiryIndex = cursor.getColumnIndex("expiry_date");
+                    String expiryDate = "";
+                    if (expiryIndex != -1 && !cursor.isNull(expiryIndex)) {
+                        expiryDate = cursor.getString(expiryIndex);
+                    }
 
-            } while (cursor.moveToNext());
+                    PantryItem item =
+                            new PantryItem(
+                                    id,
+                                    name,
+                                    quantity,
+                                    unit,
+                                    expiryDate
+                            );
+
+                    pantryItems.add(item);
+
+                } while (cursor.moveToNext());
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
         }
-
-        cursor.close();
 
         return pantryItems;
     }
@@ -212,63 +242,69 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
         SQLiteDatabase db =
                 this.getReadableDatabase();
 
-        Cursor cursor = db.rawQuery(
-                "SELECT name, expiry_date " +
-                        "FROM pantry_items " +
-                        "WHERE expiry_date IS NOT NULL " +
-                        "AND TRIM(expiry_date) != '' " +
-                        "ORDER BY expiry_date ASC",
-                null
-        );
+        Cursor cursor = null;
 
-        if (cursor.moveToFirst()) {
+        try {
+            cursor = db.rawQuery(
+                    "SELECT name, expiry_date " +
+                            "FROM pantry_items " +
+                            "WHERE expiry_date IS NOT NULL " +
+                            "AND TRIM(expiry_date) != '' " +
+                            "ORDER BY expiry_date ASC",
+                    null
+            );
 
-            do {
+            if (cursor != null && cursor.moveToFirst()) {
 
-                String name =
-                        cursor.getString(
-                                cursor.getColumnIndexOrThrow(
-                                        "name"
-                                )
-                        );
+                do {
 
-                String expiryDateText =
-                        cursor.getString(
-                                cursor.getColumnIndexOrThrow(
-                                        "expiry_date"
-                                )
-                        );
-
-                Date expiryDate =
-                        parseExpiryDate(
-                                expiryDateText
-                        );
-
-                if (expiryDate != null) {
-
-                    // Compare using calendar dates so that an ingredient
-                    // expiring later today is treated as 0 days remaining.
-                    long calendarDaysRemaining =
-                            getCalendarDaysRemaining(
-                                    expiryDate
+                    String name =
+                            cursor.getString(
+                                    cursor.getColumnIndexOrThrow(
+                                            "name"
+                                    )
                             );
 
-                    if (calendarDaysRemaining <= daysThreshold) {
+                    String expiryDateText =
+                            cursor.getString(
+                                    cursor.getColumnIndexOrThrow(
+                                            "expiry_date"
+                                    )
+                            );
 
-                        expiringIngredients.add(
-                                new ExpiringIngredient(
-                                        name,
-                                        expiryDateText,
-                                        calendarDaysRemaining
-                                )
-                        );
+                    Date expiryDate =
+                            parseExpiryDate(
+                                    expiryDateText
+                            );
+
+                    if (expiryDate != null) {
+
+                        // Compare using calendar dates so that an ingredient
+                        // expiring later today is treated as 0 days remaining.
+                        long calendarDaysRemaining =
+                                getCalendarDaysRemaining(
+                                        expiryDate
+                                );
+
+                        if (calendarDaysRemaining <= daysThreshold) {
+
+                            expiringIngredients.add(
+                                    new ExpiringIngredient(
+                                            name,
+                                            expiryDateText,
+                                            calendarDaysRemaining
+                                    )
+                            );
+                        }
                     }
-                }
 
-            } while (cursor.moveToNext());
+                } while (cursor.moveToNext());
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
         }
-
-        cursor.close();
 
         return expiringIngredients;
     }
@@ -352,9 +388,10 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
 
     // INSERT recipe
     public long insertRecipe(Recipe recipe) {
+        return insertRecipe(this.getWritableDatabase(), recipe);
+    }
 
-        SQLiteDatabase db =
-                this.getWritableDatabase();
+    public long insertRecipe(SQLiteDatabase db, Recipe recipe) {
 
         ContentValues values =
                 new ContentValues();
@@ -375,51 +412,59 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
     // SELECT all recipes
     public List<Recipe> getAllRecipes() {
 
+        seedRecipesIfEmpty();
+
         List<Recipe> recipes =
                 new ArrayList<>();
 
         SQLiteDatabase db =
                 this.getReadableDatabase();
 
-        Cursor cursor = db.rawQuery(
-                "SELECT id, name, instructions " +
-                        "FROM recipes " +
-                        "ORDER BY id ASC",
-                null
-        );
+        Cursor cursor = null;
 
-        if (cursor.moveToFirst()) {
+        try {
+            cursor = db.rawQuery(
+                    "SELECT id, name, instructions " +
+                            "FROM recipes " +
+                            "ORDER BY id ASC",
+                    null
+            );
 
-            do {
+            if (cursor != null && cursor.moveToFirst()) {
 
-                int id =
-                        cursor.getInt(
-                                cursor.getColumnIndexOrThrow("id")
-                        );
+                do {
 
-                String name =
-                        cursor.getString(
-                                cursor.getColumnIndexOrThrow("name")
-                        );
+                    int id =
+                            cursor.getInt(
+                                    cursor.getColumnIndexOrThrow("id")
+                            );
 
-                String instructions =
-                        cursor.getString(
-                                cursor.getColumnIndexOrThrow("instructions")
-                        );
+                    String name =
+                            cursor.getString(
+                                    cursor.getColumnIndexOrThrow("name")
+                            );
 
-                Recipe recipe =
-                        new Recipe(
-                                id,
-                                name,
-                                instructions
-                        );
+                    String instructions =
+                            cursor.getString(
+                                    cursor.getColumnIndexOrThrow("instructions")
+                            );
 
-                recipes.add(recipe);
+                    Recipe recipe =
+                            new Recipe(
+                                    id,
+                                    name,
+                                    instructions
+                            );
 
-            } while (cursor.moveToNext());
+                    recipes.add(recipe);
+
+                } while (cursor.moveToNext());
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
         }
-
-        cursor.close();
 
         return recipes;
     }
@@ -434,9 +479,15 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
             String ingredientName,
             double requiredQuantity,
             String unit) {
+        return insertRecipeIngredient(this.getWritableDatabase(), recipeId, ingredientName, requiredQuantity, unit);
+    }
 
-        SQLiteDatabase db =
-                this.getWritableDatabase();
+    public long insertRecipeIngredient(
+            SQLiteDatabase db,
+            long recipeId,
+            String ingredientName,
+            double requiredQuantity,
+            String unit) {
 
         ContentValues values =
                 new ContentValues();
@@ -465,54 +516,60 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
         SQLiteDatabase db =
                 this.getReadableDatabase();
 
-        Cursor cursor = db.rawQuery(
-                "SELECT ingredient_name, required_quantity, unit " +
-                        "FROM recipe_ingredients " +
-                        "WHERE recipe_id = ? " +
-                        "ORDER BY id ASC",
-                new String[]{
-                        String.valueOf(recipeId)
-                }
-        );
+        Cursor cursor = null;
 
-        if (cursor.moveToFirst()) {
+        try {
+            cursor = db.rawQuery(
+                    "SELECT ingredient_name, required_quantity, unit " +
+                            "FROM recipe_ingredients " +
+                            "WHERE recipe_id = ? " +
+                            "ORDER BY id ASC",
+                    new String[]{
+                            String.valueOf(recipeId)
+                    }
+            );
 
-            do {
+            if (cursor != null && cursor.moveToFirst()) {
 
-                String ingredientName =
-                        cursor.getString(
-                                cursor.getColumnIndexOrThrow(
-                                        "ingredient_name"
-                                )
-                        );
+                do {
 
-                double requiredQuantity =
-                        cursor.getDouble(
-                                cursor.getColumnIndexOrThrow(
-                                        "required_quantity"
-                                )
-                        );
+                    String ingredientName =
+                            cursor.getString(
+                                    cursor.getColumnIndexOrThrow(
+                                            "ingredient_name"
+                                    )
+                            );
 
-                String unit =
-                        cursor.getString(
-                                cursor.getColumnIndexOrThrow(
-                                        "unit"
-                                )
-                        );
+                    double requiredQuantity =
+                            cursor.getDouble(
+                                    cursor.getColumnIndexOrThrow(
+                                            "required_quantity"
+                                    )
+                            );
 
-                String ingredient =
-                        ingredientName +
-                                " - " +
-                                requiredQuantity +
-                                " " +
-                                unit;
+                    String unit =
+                            cursor.getString(
+                                    cursor.getColumnIndexOrThrow(
+                                            "unit"
+                                    )
+                            );
 
-                ingredients.add(ingredient);
+                    String ingredient =
+                            ingredientName +
+                                    " - " +
+                                    requiredQuantity +
+                                    " " +
+                                    unit;
 
-            } while (cursor.moveToNext());
+                    ingredients.add(ingredient);
+
+                } while (cursor.moveToNext());
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
         }
-
-        cursor.close();
 
         return ingredients;
     }
@@ -526,18 +583,34 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
         SQLiteDatabase db =
                 this.getWritableDatabase();
 
-        Cursor cursor = db.rawQuery(
-                "SELECT COUNT(*) FROM recipes",
-                null
-        );
+        seedRecipesIfEmpty(db);
+    }
 
-        int recipeCount = 0;
+    public void seedRecipesIfEmpty(SQLiteDatabase db) {
 
-        if (cursor.moveToFirst()) {
-            recipeCount = cursor.getInt(0);
+        if (db == null) {
+            return;
         }
 
-        cursor.close();
+        Cursor cursor = null;
+        int recipeCount = 0;
+
+        try {
+            cursor = db.rawQuery(
+                    "SELECT COUNT(*) FROM recipes",
+                    null
+            );
+
+            if (cursor != null && cursor.moveToFirst()) {
+                recipeCount = cursor.getInt(0);
+            }
+        } catch (Exception e) {
+            return;
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
 
         // Do not insert recipes if they already exist
         if (recipeCount > 0) {
@@ -546,6 +619,7 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
 
         // 1. Chicken Pasta
         long recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Chicken Pasta",
                         "Cook the pasta. Cook the chicken and onion in a pan. " +
@@ -553,13 +627,14 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "chicken", 500, "g");
-        insertRecipeIngredient(recipeId, "pasta", 250, "g");
-        insertRecipeIngredient(recipeId, "onion", 1, "whole");
-        insertRecipeIngredient(recipeId, "tomato", 2, "whole");
+        insertRecipeIngredient(db, recipeId, "chicken", 500, "g");
+        insertRecipeIngredient(db, recipeId, "pasta", 250, "g");
+        insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "tomato", 2, "whole");
 
         // 2. Spaghetti Bolognese
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Spaghetti Bolognese",
                         "Cook the spaghetti. Brown the beef with onion. " +
@@ -567,13 +642,14 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "spaghetti", 250, "g");
-        insertRecipeIngredient(recipeId, "beef mince", 500, "g");
-        insertRecipeIngredient(recipeId, "onion", 1, "whole");
-        insertRecipeIngredient(recipeId, "tomato", 2, "whole");
+        insertRecipeIngredient(db, recipeId, "spaghetti", 250, "g");
+        insertRecipeIngredient(db, recipeId, "beef mince", 500, "g");
+        insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "tomato", 2, "whole");
 
         // 3. Omelette
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Omelette",
                         "Beat the eggs. Cook them in a pan and add onion, " +
@@ -581,13 +657,14 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "eggs", 3, "whole");
-        insertRecipeIngredient(recipeId, "onion", 0.5, "whole");
-        insertRecipeIngredient(recipeId, "tomato", 1, "whole");
-        insertRecipeIngredient(recipeId, "cheese", 50, "g");
+        insertRecipeIngredient(db, recipeId, "eggs", 3, "whole");
+        insertRecipeIngredient(db, recipeId, "onion", 0.5, "whole");
+        insertRecipeIngredient(db, recipeId, "tomato", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "cheese", 50, "g");
 
         // 4. Chicken Curry
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Chicken Curry",
                         "Cook onion and chicken. Add curry seasoning and tomato. " +
@@ -595,13 +672,14 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "chicken", 500, "g");
-        insertRecipeIngredient(recipeId, "rice", 250, "g");
-        insertRecipeIngredient(recipeId, "onion", 1, "whole");
-        insertRecipeIngredient(recipeId, "tomato", 2, "whole");
+        insertRecipeIngredient(db, recipeId, "chicken", 500, "g");
+        insertRecipeIngredient(db, recipeId, "rice", 250, "g");
+        insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "tomato", 2, "whole");
 
         // 5. Fried Rice
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Fried Rice",
                         "Cook the rice. Stir-fry the onion and vegetables. " +
@@ -609,13 +687,14 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "rice", 300, "g");
-        insertRecipeIngredient(recipeId, "eggs", 2, "whole");
-        insertRecipeIngredient(recipeId, "onion", 1, "whole");
-        insertRecipeIngredient(recipeId, "mixed vegetables", 150, "g");
+        insertRecipeIngredient(db, recipeId, "rice", 300, "g");
+        insertRecipeIngredient(db, recipeId, "eggs", 2, "whole");
+        insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "mixed vegetables", 150, "g");
 
         // 6. Vegetable Stir Fry
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Vegetable Stir Fry",
                         "Cut the vegetables and stir-fry them in a hot pan. " +
@@ -623,12 +702,13 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "mixed vegetables", 300, "g");
-        insertRecipeIngredient(recipeId, "onion", 1, "whole");
-        insertRecipeIngredient(recipeId, "carrot", 2, "whole");
+        insertRecipeIngredient(db, recipeId, "mixed vegetables", 300, "g");
+        insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "carrot", 2, "whole");
 
         // 7. Tuna Sandwich
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Tuna Sandwich",
                         "Mix the tuna with mayonnaise. Place the mixture " +
@@ -636,13 +716,14 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "bread", 4, "slices");
-        insertRecipeIngredient(recipeId, "tuna", 1, "can");
-        insertRecipeIngredient(recipeId, "tomato", 1, "whole");
-        insertRecipeIngredient(recipeId, "lettuce", 50, "g");
+        insertRecipeIngredient(db, recipeId, "bread", 4, "slices");
+        insertRecipeIngredient(db, recipeId, "tuna", 1, "can");
+        insertRecipeIngredient(db, recipeId, "tomato", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "lettuce", 50, "g");
 
         // 8. Pancakes
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Pancakes",
                         "Mix flour, eggs and milk into a smooth batter. " +
@@ -650,12 +731,13 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "flour", 250, "g");
-        insertRecipeIngredient(recipeId, "eggs", 2, "whole");
-        insertRecipeIngredient(recipeId, "milk", 300, "ml");
+        insertRecipeIngredient(db, recipeId, "flour", 250, "g");
+        insertRecipeIngredient(db, recipeId, "eggs", 2, "whole");
+        insertRecipeIngredient(db, recipeId, "milk", 300, "ml");
 
         // 9. Tomato Pasta
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Tomato Pasta",
                         "Cook the pasta. Prepare a tomato and onion sauce " +
@@ -663,12 +745,13 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "pasta", 250, "g");
-        insertRecipeIngredient(recipeId, "tomato", 3, "whole");
-        insertRecipeIngredient(recipeId, "onion", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "pasta", 250, "g");
+        insertRecipeIngredient(db, recipeId, "tomato", 3, "whole");
+        insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
 
         // 10. Chicken and Rice
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Chicken and Rice",
                         "Cook the rice. Season and cook the chicken. " +
@@ -676,12 +759,13 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "chicken", 500, "g");
-        insertRecipeIngredient(recipeId, "rice", 250, "g");
-        insertRecipeIngredient(recipeId, "mixed vegetables", 150, "g");
+        insertRecipeIngredient(db, recipeId, "chicken", 500, "g");
+        insertRecipeIngredient(db, recipeId, "rice", 250, "g");
+        insertRecipeIngredient(db, recipeId, "mixed vegetables", 150, "g");
 
         // 11. Beef Stir Fry
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Beef Stir Fry",
                         "Slice the beef and vegetables. Stir-fry the beef " +
@@ -689,13 +773,14 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "beef", 400, "g");
-        insertRecipeIngredient(recipeId, "onion", 1, "whole");
-        insertRecipeIngredient(recipeId, "carrot", 2, "whole");
-        insertRecipeIngredient(recipeId, "mixed vegetables", 150, "g");
+        insertRecipeIngredient(db, recipeId, "beef", 400, "g");
+        insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "carrot", 2, "whole");
+        insertRecipeIngredient(db, recipeId, "mixed vegetables", 150, "g");
 
         // 12. Potato Curry
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Potato Curry",
                         "Cook the onion and potatoes with curry seasoning. " +
@@ -703,12 +788,13 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "potato", 500, "g");
-        insertRecipeIngredient(recipeId, "onion", 1, "whole");
-        insertRecipeIngredient(recipeId, "tomato", 2, "whole");
+        insertRecipeIngredient(db, recipeId, "potato", 500, "g");
+        insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "tomato", 2, "whole");
 
         // 13. Egg Fried Rice
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Egg Fried Rice",
                         "Cook the rice. Scramble the eggs and stir-fry with " +
@@ -716,12 +802,13 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "rice", 300, "g");
-        insertRecipeIngredient(recipeId, "eggs", 3, "whole");
-        insertRecipeIngredient(recipeId, "onion", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "rice", 300, "g");
+        insertRecipeIngredient(db, recipeId, "eggs", 3, "whole");
+        insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
 
         // 14. Macaroni and Cheese
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Macaroni and Cheese",
                         "Cook the macaroni. Prepare a cheese sauce using milk " +
@@ -729,12 +816,13 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "macaroni", 250, "g");
-        insertRecipeIngredient(recipeId, "cheese", 150, "g");
-        insertRecipeIngredient(recipeId, "milk", 300, "ml");
+        insertRecipeIngredient(db, recipeId, "macaroni", 250, "g");
+        insertRecipeIngredient(db, recipeId, "cheese", 150, "g");
+        insertRecipeIngredient(db, recipeId, "milk", 300, "ml");
 
         // 15. Chicken Wrap
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Chicken Wrap",
                         "Cook the chicken. Place chicken, lettuce and tomato " +
@@ -742,13 +830,14 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "chicken", 300, "g");
-        insertRecipeIngredient(recipeId, "wrap", 4, "whole");
-        insertRecipeIngredient(recipeId, "lettuce", 50, "g");
-        insertRecipeIngredient(recipeId, "tomato", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "chicken", 300, "g");
+        insertRecipeIngredient(db, recipeId, "wrap", 4, "whole");
+        insertRecipeIngredient(db, recipeId, "lettuce", 50, "g");
+        insertRecipeIngredient(db, recipeId, "tomato", 1, "whole");
 
         // 16. Vegetable Soup
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Vegetable Soup",
                         "Chop the vegetables. Add them to a pot with water " +
@@ -756,13 +845,14 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "potato", 300, "g");
-        insertRecipeIngredient(recipeId, "carrot", 2, "whole");
-        insertRecipeIngredient(recipeId, "onion", 1, "whole");
-        insertRecipeIngredient(recipeId, "mixed vegetables", 200, "g");
+        insertRecipeIngredient(db, recipeId, "potato", 300, "g");
+        insertRecipeIngredient(db, recipeId, "carrot", 2, "whole");
+        insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "mixed vegetables", 200, "g");
 
         // 17. Beef Pasta
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Beef Pasta",
                         "Cook the pasta. Brown the beef with onion and tomato. " +
@@ -770,13 +860,14 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "pasta", 250, "g");
-        insertRecipeIngredient(recipeId, "beef mince", 400, "g");
-        insertRecipeIngredient(recipeId, "onion", 1, "whole");
-        insertRecipeIngredient(recipeId, "tomato", 2, "whole");
+        insertRecipeIngredient(db, recipeId, "pasta", 250, "g");
+        insertRecipeIngredient(db, recipeId, "beef mince", 400, "g");
+        insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "tomato", 2, "whole");
 
         // 18. Breakfast Scramble
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Breakfast Scramble",
                         "Scramble the eggs with onion and tomato. " +
@@ -784,13 +875,14 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "eggs", 3, "whole");
-        insertRecipeIngredient(recipeId, "bread", 2, "slices");
-        insertRecipeIngredient(recipeId, "onion", 0.5, "whole");
-        insertRecipeIngredient(recipeId, "tomato", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "eggs", 3, "whole");
+        insertRecipeIngredient(db, recipeId, "bread", 2, "slices");
+        insertRecipeIngredient(db, recipeId, "onion", 0.5, "whole");
+        insertRecipeIngredient(db, recipeId, "tomato", 1, "whole");
 
         // 19. Chicken Soup
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Chicken Soup",
                         "Cook the chicken with onion, potato and carrot " +
@@ -798,13 +890,14 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "chicken", 400, "g");
-        insertRecipeIngredient(recipeId, "potato", 300, "g");
-        insertRecipeIngredient(recipeId, "carrot", 2, "whole");
-        insertRecipeIngredient(recipeId, "onion", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "chicken", 400, "g");
+        insertRecipeIngredient(db, recipeId, "potato", 300, "g");
+        insertRecipeIngredient(db, recipeId, "carrot", 2, "whole");
+        insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
 
         // 20. Rice and Beans
         recipeId = insertRecipe(
+                db,
                 new Recipe(
                         "Rice and Beans",
                         "Cook the rice. Heat the beans with onion and tomato. " +
@@ -812,9 +905,9 @@ public class SmartPantryDatabase extends SQLiteOpenHelper {
                 )
         );
 
-        insertRecipeIngredient(recipeId, "rice", 250, "g");
-        insertRecipeIngredient(recipeId, "beans", 1, "can");
-        insertRecipeIngredient(recipeId, "onion", 1, "whole");
-        insertRecipeIngredient(recipeId, "tomato", 2, "whole");
+        insertRecipeIngredient(db, recipeId, "rice", 250, "g");
+        insertRecipeIngredient(db, recipeId, "beans", 1, "can");
+        insertRecipeIngredient(db, recipeId, "onion", 1, "whole");
+        insertRecipeIngredient(db, recipeId, "tomato", 2, "whole");
     }
 }

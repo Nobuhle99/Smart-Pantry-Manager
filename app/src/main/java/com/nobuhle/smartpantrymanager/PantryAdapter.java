@@ -48,6 +48,14 @@ public class PantryAdapter extends RecyclerView.Adapter<PantryAdapter.PantryView
 
         holder.tvIngredientQuantity.setText(quantityText);
 
+        if (item.getExpiryDate() != null && !item.getExpiryDate().trim().isEmpty()) {
+            String expiryText = "Expires: " + item.getExpiryDate().trim();
+            holder.tvIngredientExpiryDate.setText(expiryText);
+            holder.tvIngredientExpiryDate.setVisibility(View.VISIBLE);
+        } else {
+            holder.tvIngredientExpiryDate.setVisibility(View.GONE);
+        }
+
         // EDIT button
         holder.btnEditIngredient.setOnClickListener(v -> {
 
@@ -63,6 +71,7 @@ public class PantryAdapter extends RecyclerView.Adapter<PantryAdapter.PantryView
             intent.putExtra("ingredient_name", item.getName());
             intent.putExtra("ingredient_quantity", item.getQuantity());
             intent.putExtra("ingredient_unit", item.getUnit());
+            intent.putExtra("ingredient_expiry_date", item.getExpiryDate());
 
             context.startActivity(intent);
         });
@@ -115,6 +124,7 @@ public class PantryAdapter extends RecyclerView.Adapter<PantryAdapter.PantryView
 
         TextView tvIngredientName;
         TextView tvIngredientQuantity;
+        TextView tvIngredientExpiryDate;
 
         Button btnEditIngredient;
         Button btnDeleteIngredient;
@@ -127,6 +137,9 @@ public class PantryAdapter extends RecyclerView.Adapter<PantryAdapter.PantryView
 
             tvIngredientQuantity =
                     itemView.findViewById(R.id.tvIngredientQuantity);
+
+            tvIngredientExpiryDate =
+                    itemView.findViewById(R.id.tvIngredientExpiryDate);
 
             btnEditIngredient =
                     itemView.findViewById(R.id.btnEditIngredient);

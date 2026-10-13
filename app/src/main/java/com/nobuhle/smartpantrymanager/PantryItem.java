@@ -6,24 +6,44 @@ public class PantryItem {
     private String name;
     private double quantity;
     private String unit;
+    private String expiryDate;
 
     // Empty constructor
     public PantryItem() {
     }
 
-    // Constructor without ID
+    // Constructor without ID (no expiry)
     public PantryItem(String name, double quantity, String unit) {
         this.name = name;
         this.quantity = quantity;
         this.unit = unit;
+        this.expiryDate = "";
     }
 
-    // Constructor with ID
+    // Constructor without ID (with expiry)
+    public PantryItem(String name, double quantity, String unit, String expiryDate) {
+        this.name = name;
+        this.quantity = quantity;
+        this.unit = unit;
+        this.expiryDate = expiryDate;
+    }
+
+    // Constructor with ID (no expiry)
     public PantryItem(int id, String name, double quantity, String unit) {
         this.id = id;
         this.name = name;
         this.quantity = quantity;
         this.unit = unit;
+        this.expiryDate = "";
+    }
+
+    // Constructor with ID (with expiry)
+    public PantryItem(int id, String name, double quantity, String unit, String expiryDate) {
+        this.id = id;
+        this.name = name;
+        this.quantity = quantity;
+        this.unit = unit;
+        this.expiryDate = expiryDate;
     }
 
     // Getters
@@ -43,6 +63,10 @@ public class PantryItem {
         return unit;
     }
 
+    public String getExpiryDate() {
+        return expiryDate;
+    }
+
     // Setters
     public void setId(int id) {
         this.id = id;
@@ -58,5 +82,9 @@ public class PantryItem {
 
     public void setUnit(String unit) {
         this.unit = unit;
+    }
+
+    public void setExpiryDate(String expiryDate) {
+        this.expiryDate = expiryDate;
     }
 }
